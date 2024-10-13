@@ -16,3 +16,4 @@ __pycache__
 *.zip
 feature_extraction_src/analysis_on_sound.ipynb
 feature_extraction_src/modify_file_folder_src/*
+mix_audio_src/experience_on_mix_audio.ipynb
