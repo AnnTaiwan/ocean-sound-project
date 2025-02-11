@@ -1,16 +1,5 @@
 '''
-1. Use crop_with_points to remove margin
-2. input mel_spec image ,and use RGB pixel value as input feature
-3. Test on image to see if consist of whale type
-4. each input image is abot 1 minutes.
-----------------------------------------------------------
-ver1:
-Use total_dataset, and save result into training_result_model_whale_1
-----------------------------------------------------------
-ver2:
-Use total_dataset, and save result into training_result_model_whale_2
-----------------------------------------------------------
-
+1. Use new separate dataset, but not balanced, use only unit audio(not mixing)
 '''
 from PIL import Image
 import torch
@@ -27,10 +16,10 @@ import os
 from torchsummary import summary
 import time
 # Hyper Parameters
-LR = 0.0001
-batch_size_train = 20
-batch_size_valid = 20
-NUM_EPOCHS = 9
+LR = 0.001
+batch_size_train = 10
+batch_size_valid = 1
+NUM_EPOCHS = 25
 
 IMAGE_SIZE = 128
 transform = transforms.Compose([
@@ -38,7 +27,7 @@ transform = transforms.Compose([
         transforms.ToTensor()
     ])
 
-
+TRAINING_RESULT_FOLDER = "training_result_sea_model_2"
 
 # 移除圖片周圍空白處
 def crop_with_points(image_path):
@@ -62,39 +51,44 @@ def crop_with_points(image_path):
 	# After cropping, shape is 496*369
     return cropped_img
 
-# when training, do data augmentation on spoof data
+# Label encoding mapping
+label_mapping = {
+    'boat_': 0,
+    'fish_': 1,
+    'dolphin_': 2,
+    'whale_': 3
+}
+
 def generate_dataset(image_folder_path, batch_size=20, train_or_valid=True):
-    image_paths = [os.path.join(image_folder_path, filename) for filename in os.listdir(image_folder_path)]
+    dir_list = os.listdir(image_folder_path)
+    # Get all image file paths
+    image_paths = [os.path.join(image_folder_path, filename) for filename in dir_list]
 
-    # Load Labels
-    # is_whale is 1, otherwise, it is 0
-    labels = [1 if "whale" in os.path.basename(filename) else 0 for filename in image_paths]
+    # Load labels based on the file name prefix
+    labels = []
+    for filename in dir_list:
+        # Check the prefix and assign the corresponding label
+        for label_name in label_mapping.keys():
+            if filename.startswith(label_name):
+                labels.append(label_mapping[label_name])
+                break
 
-    ### COUNT ###
-    # 計算 1 的數量（包含 "whale" 的文件數量）
-    num_whale_files = sum(labels)
+    # Apply transformations to all images
+    images = [transform(crop_with_points(path).convert('RGB')) for path in image_paths]
 
-    # 計算 0 的數量（不包含 "whale" 的文件數量）
-    num_non_whale_files = len(labels) - num_whale_files
-
-    print(f"Number of 'whale' files: {num_whale_files}")
-    print(f"Number of non-'whale' files: {num_non_whale_files}")
-    ########
-    # Apply Transformations
-    images = [transform(crop_with_points(path).convert('RGB'))  for path in image_paths]
-    
-    # Create TensorDataset
+    # Create TensorDataset: stack images and labels into tensors
     dataset = torch.utils.data.TensorDataset(torch.stack(images), torch.tensor(labels, dtype=torch.long))
 
-    # Create DataLoader for train and validation sets
+    # Create DataLoader for either train or validation
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=train_or_valid, pin_memory=True)
 
     return data_loader
+
     
 # define CNN model
-class CNN_model_whale_1(nn.Module):
+class CNN_sea_model2(nn.Module):
     def __init__(self):
-        super(CNN_model_whale_1, self).__init__()
+        super(CNN_sea_model2, self).__init__()
         self.input_layers = nn.ModuleList([
             nn.Sequential(
                 nn.Conv2d(3, 8, 5, stride=1), # kernel = 5*5
@@ -137,7 +131,7 @@ class CNN_model_whale_1(nn.Module):
         self.class_layers = nn.ModuleList([
             nn.Sequential(
                 # Flatten layers
-                nn.Linear(8*2*2, 2),       
+                nn.Linear(8*2*2, 4),       
             )
         ])
         
@@ -154,7 +148,7 @@ class CNN_model_whale_1(nn.Module):
 # 訓練模型
 def training(model):
     # 把結果寫入檔案
-    file = open("training_result_model_whale_2/training_detail_whale_2.txt", "w")
+    file = open(f"{TRAINING_RESULT_FOLDER}/training_detail_sea_model2_ver1.txt", "w")
     # 紀錄最大驗證集準確率
     max_accuracy = 0
 
@@ -193,7 +187,6 @@ def training(model):
         valid_loss = 0.0
         correct = 0
         total = 0
-        all_probs = []
         all_pred = []
         all_label = []
         with torch.no_grad():
@@ -204,17 +197,13 @@ def training(model):
                 # forward pass: compute predicted outputs by passing inputs to the model
                 output = model(image)
                 # calculate the batch loss
-                loss =criterion(output, label)
+                loss = criterion(output, label)
                 # update training loss
                 valid_loss += loss.item()*image.size(0)
 
                 probs = torch.nn.functional.softmax(output, dim=1)
                 _, predicted = torch.max(probs, 1)
 
-                # Extract the probabilities for class 1 (positive class)
-                probs_class_1 = np.array(probs.cpu())[:, 1] # for draw the roc
-
-                all_probs.extend(probs_class_1)
                 all_pred.extend(predicted.cpu().numpy())
                 all_label.extend(label.cpu().numpy())
                 total += label.size(0)
@@ -236,7 +225,7 @@ def training(model):
             max_accuracy = accuracy_valid
             save_parameters = True
             if save_parameters:
-                path = 'training_result_model_whale_2/model_whale_2.pth'
+                path = f"{TRAINING_RESULT_FOLDER}/sea_model2_ver1.pth"
                 torch.save(model.state_dict(), path, _use_new_zipfile_serialization=False)
                 print(f"====Save parameters in {path}====")
                 file.write(f"====Save parameters in {path}====\n")
@@ -252,26 +241,12 @@ def training(model):
     print(f"\nMax accuracy: {max_accuracy}")
     file.write(f"\nMax accuracy: {max_accuracy}\n")
     file.close()  # 寫完後關閉檔案
-    # 計算 AUROC
-    roc_auc = roc_auc_score(all_label, all_probs)
     
-    # 繪製最後一個epoch的ROC和confusion matrix
-    # 繪製 ROC 曲線
-    fpr, tpr, _ = roc_curve(all_label, all_probs)
-    plt.figure()
-    plt.plot(fpr, tpr, label='AUROC = {:.2f}'.format(roc_auc))
-    plt.plot([0, 1], [0, 1], 'k--')  
-    plt.title('ROC Curve')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.legend(loc='lower right')
-    plt.savefig("training_result_model_whale_2/whale_ROC1_ver2.png") 
-
     # confusion_matrix
     plt.figure()
     cm = confusion_matrix(all_label, all_pred)
     sns.heatmap(cm, annot=True)
-    plt.savefig("training_result_model_whale_2/whale_Confusion_matrix1_ver2.png") 
+    plt.savefig(f"{TRAINING_RESULT_FOLDER}/Confusion_matrix2_ver1.png") 
 
 def plt_loss_accuracy_fig(Total_training_loss, Total_validation_loss, Total_training_accuracy, Total_validation_accuracy):
     # visualization the loss and accuracy
@@ -282,7 +257,7 @@ def plt_loss_accuracy_fig(Total_training_loss, Total_validation_loss, Total_trai
     plt.xlabel('No. of epochs')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig("training_result_model_whale_2/whale_Loss1_ver2.png") 
+    plt.savefig(f"{TRAINING_RESULT_FOLDER}/Loss2_ver1.png") 
 
     plt.figure()
     plt.plot(range(NUM_EPOCHS), Total_training_accuracy, 'r-', label='Training_accuracy')
@@ -291,7 +266,7 @@ def plt_loss_accuracy_fig(Total_training_loss, Total_validation_loss, Total_trai
     plt.xlabel('No. of epochs')
     plt.ylabel('Accuracy')
     plt.legend()
-    plt.savefig("training_result_model_whale_2/whale_Accuracy1_ver2.png") 
+    plt.savefig(f"{TRAINING_RESULT_FOLDER}/Accuracy2_ver1.png") 
 
 
 # Start training
@@ -301,15 +276,15 @@ if __name__ == "__main__":
     print(f"Train on {device}.")
     
     # set up a model , turn model into cuda
-    model = CNN_model_whale_1().to(device)
-    
+    model = CNN_sea_model2().to(device)
+   
     # Load Images from a Folder
-    image_folder_path = r"D:\ocean_sound_project\mix_dataset_ver2\IMAGES\Z_final_dataset_1\whale_version2\train"
+    image_folder_path = r"D:\ocean_sound_project\mix_dataset_ver2\IMAGES\Z_final_dataset_1\four_labels_version\train"
     print(f"Loading train data from {image_folder_path}...")
     train_dataloader = generate_dataset(image_folder_path, batch_size = batch_size_train, train_or_valid = True)
     
     # Load Images from a Folder
-    image_folder_path = r"D:\ocean_sound_project\mix_dataset_ver2\IMAGES\Z_final_dataset_1\whale_version2\val"
+    image_folder_path = r"D:\ocean_sound_project\mix_dataset_ver2\IMAGES\Z_final_dataset_1\four_labels_version\val"
     print(f"Loading validation data from {image_folder_path}...")
     valid_dataloader = generate_dataset(image_folder_path, batch_size = batch_size_valid, train_or_valid = False)
     print(f"Finish loading all the data.")

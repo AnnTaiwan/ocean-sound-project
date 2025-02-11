@@ -1,8 +1,8 @@
 import numpy as np
 from amplify_audio_func import load_audio, amplify_audio, save_audio, get_max_factor
 import os
-source_dir = r"D:\ocean_sound_project\original_dataset_with_label_name\fish"
-dest_dir = r"D:\ocean_sound_project\original_dataset_with_label_name\amplify_audio_factor4\fish_amplify"
+source_dir = r"D:\ocean_sound_project\original_dataset_with_label_name\Merge_sound\船+魚"
+dest_dir = r"D:\ocean_sound_project\original_dataset_with_label_name\Merge_sound\merge_sound_amplify\boat_fish_amplify"
 FACTOR = 4 # factor to amplify this audio
 
 if __name__ == "__main__":

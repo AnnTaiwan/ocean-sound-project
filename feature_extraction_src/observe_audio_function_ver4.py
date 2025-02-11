@@ -7,17 +7,32 @@ import IPython.display as ipd
 import noisereduce as nr
 
 # Audio params
-SAMPLE_RATE = 48000  # (samples/sec)
-DURATION = 5.0  # duration in second (sec)
+# SAMPLE_RATE = 48000  # (samples/sec)
+# DURATION = 4.0  # duration in second (sec)
+# AUDIO_LEN = int(SAMPLE_RATE * DURATION)  # total number of samples in DURATION
+
+# # Spectrogram params
+# N_MELS = 64  # freq axis, number of filters
+# N_FFT = 512  # frame size
+# HOP_LEN = 512  # non-overlap region, which means 1/4 portion overlapping
+# SPEC_WIDTH = AUDIO_LEN // HOP_LEN + 1  # time axis
+# FMAX = SAMPLE_RATE // 2  # max frequency, based on the rule, it should be half of SAMPLE_RATE
+# SPEC_SHAPE = [N_MELS, SPEC_WIDTH]  # expected output spectrogram shape
+
+
+# Audio params
+SAMPLE_RATE = 22050  # (samples/sec)
+DURATION = 3.0  # duration in second (sec)
 AUDIO_LEN = int(SAMPLE_RATE * DURATION)  # total number of samples in DURATION
 
 # Spectrogram params
-N_MELS = 512  # freq axis, number of filters
-N_FFT = 4096  # frame size
+N_MELS = 64  # freq axis, number of filters
+N_FFT = 1024  # frame size
 HOP_LEN = 1024  # non-overlap region, which means 1/4 portion overlapping
 SPEC_WIDTH = AUDIO_LEN // HOP_LEN + 1  # time axis
 FMAX = SAMPLE_RATE // 2  # max frequency, based on the rule, it should be half of SAMPLE_RATE
 SPEC_SHAPE = [N_MELS, SPEC_WIDTH]  # expected output spectrogram shape
+
 
 def load_audio(filepath, sr=SAMPLE_RATE):  # load the audio
     audio, sr = librosa.load(filepath, sr=sr)
