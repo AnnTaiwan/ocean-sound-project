@@ -102,8 +102,8 @@ if __name__ == "__main__":
     # some const variable
     # setting SNR_DB
     SNR_DB = 20
-    source_dir_path = r"D:\ocean_sound_project\dataset_ver1\dolphin"
-    dest_dir_path = r"D:\ocean_sound_project\dataset_ver1\dolphin_add_noise20db"
+    source_dir_path = r"D:\ocean_sound_project\mix_dataset_ver2\dolphin_whale_train"
+    dest_dir_path = r"D:\ocean_sound_project\mix_dataset_ver2\dolphin_whale_train_add_noise20db"
     os.makedirs(dest_dir_path, exist_ok=True)
     for filename in os.listdir(source_dir_path):
         audio_path = os.path.join(source_dir_path, filename)

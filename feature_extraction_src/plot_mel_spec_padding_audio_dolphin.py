@@ -9,8 +9,9 @@ import numpy as np
 from observe_audio_function_ver4 import SAMPLE_RATE, AUDIO_LEN, load_audio, get_mel_spectrogram, plot_mel_spectrogram, denoise
 import os 
 # Create a directory to store the spectrogram images
-source_folder = r"D:\ocean_sound_project\dataset_ver1\dolphin_add_noise20db"
-destination_folder = r"D:\ocean_sound_project\dataset_ver1\images\dolphin_add_noise20db_mel_spec"
+source_folder = r"D:\ocean_sound_project\original_dataset_with_label_name\Z_split1\dolphin_add_noise20db_train"
+destination_folder = r"D:\ocean_sound_project\mix_dataset_ver2\IMAGES\dolphin_train_add_noise20db_mel_spec"
+destination_folder2 = r"D:\ocean_sound_project\mix_dataset_ver2\IMAGES\Z_final_dataset_1\train"
 SEGMENT_LENGTH = AUDIO_LEN * 12 # one segment is 1 minutes, and the original `AUDIO_LEN` is 5 seconds.
 # So, SEGEMENT_LENGTH should be considered as 1 minutes.
 
@@ -39,7 +40,9 @@ if __name__ == "__main__":
         # dest_filename = f"bonafide_melspec_{filename[:-4]}.png"  # Use single quotes inside the f-string
         dest_filename = f"{filename[:-4]}_mel_spec.png"  # Use single quotes inside the f-string
         dest_filepath = os.path.join(destination_folder, dest_filename)
+        dest_filepath2 = os.path.join(destination_folder2, dest_filename)
         plt.savefig(dest_filepath)
+        plt.savefig(dest_filepath2)
         # Close the figure to free up resources
         plt.close()
 
