@@ -73,7 +73,7 @@ def mix_audio_wav_with_human(path1, path2, dest_path, FACTOR=1):
     sound2 = AudioSegment.from_file(path2)
 
     # 降低音量
-    # sound1 = sound1 + (10 * np.log10(FACTOR))
+    sound1 = sound1 + (10 * np.log10(FACTOR))
     sound2 = sound2 - (10 * np.log10(FACTOR))  # Turn down human sound
 
     # 隨機裁剪 sound2 使其匹配 sound1 的長度
