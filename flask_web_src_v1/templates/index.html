@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>undersea sound prediction web</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            /* Correct Flask static image reference */
+            background-image: url("{{ url_for('static', filename='images/undersea_webbackground.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 80%;
+            max-width: 800px;
+        }
+        h1 {
+            color: #2067ae;
+            margin-bottom: 20px;
+        }
+        .button {
+            padding: 12px 25px;
+            margin: 10px;
+            font-size: 1.1em;
+            background-color: #e6ba0b;
+            color: rgb(0, 0, 0);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        }
+        .button:hover {
+            background-color: #df5f5f;
+        }
+        pre#output {
+            background: #f8f9fa;
+            padding: 20px;
+            height: 300px;
+            overflow-y: auto;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: left;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+        }
+    </style>
+    <script>
+        function startCpp() {
+            fetch('/start', {method: 'POST'})
+                .then(res => res.json())
+                .then(data => console.log(data));
+        }
+
+        function stopCpp() {
+            fetch('/stop', {method: 'POST'})
+                .then(res => res.json())
+                .then(data => console.log(data));
+        }
+        function resetWindow() {
+            fetch('/reset', {method: 'POST'})
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data);
+                    document.getElementById('output').innerHTML = '';  // 清空畫面
+                    lastLines.clear();  // 清掉已記錄的行，避免不再顯示新輸出
+                });
+        }
+
+
+        let lastLines = new Set();
+        function updateOutput() {
+            fetch('/output')
+                .then(res => res.json())
+                .then(data => {
+                    const outputBox = document.getElementById('output');
+
+                    // 過濾已經出現過的
+                    data.output.forEach(line => {
+                        if (!lastLines.has(line)) {
+                            const div = document.createElement('div');
+                            div.textContent = line;
+                            outputBox.appendChild(div);
+                            lastLines.add(line);
+
+                            // 滾動到最底部
+                            outputBox.scrollTop = outputBox.scrollHeight;
+                        }
+                    });
+                });
+        }
+
+        setInterval(updateOutput, 1000);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>水下音檔預測</h1>
+        <h2>主要預測聲音: 船(boat), 海豚(dolphin), 魚(fish), 鯨魚(whale)</h2>
+        <button class="button" onclick="startCpp()">Start</button>
+        <button class="button" onclick="stopCpp()">Stop</button>
+        <button class="button" onclick="resetWindow()">Reset</button>
+        <pre id="output">Waiting for output...</pre>
+    </div>
+</body>
+</html>

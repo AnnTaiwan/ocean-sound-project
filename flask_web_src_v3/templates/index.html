@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Undersea Sound Prediction</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+
+        .main-layout {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .video-container {
+            flex: 1;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .container {
+            width: 400px;
+            background: #fff;
+            padding: 40px;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        h1 {
+            margin-top: -5%;
+            color: #2067ae;
+        }
+        h3 {
+            margin-top: -5%;
+            color: #000000;
+        }
+
+        .button {
+            padding: 10px 25px;
+            margin: 10px;
+            margin-top: 0%;
+            font-size: 1.1em;
+            background-color: #e6ba0b;
+            color: black;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #df5f5f;
+        }
+
+        pre#output {
+            background: #f8f9fa;
+            padding: 20px;
+            height: 200px;
+            width: 500px;
+            overflow-y: auto;
+            border-radius: 8px;
+            margin-top: 10px;
+            margin-left: -10%;
+            text-align: left;
+        }
+
+        #images {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .label-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        }
+    </style>
+    <script>
+        let lastLines = new Set();
+
+        function startCpp() {
+            fetch('/start', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data);
+                    const video = document.getElementById('undersea-video');
+                    video.currentTime = 0;
+                    video.play();
+                });
+        }
+
+        function stopCpp() {
+            fetch('/stop', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data);
+                    const video = document.getElementById('undersea-video');
+                    video.pause();
+                });
+        }
+
+        function resetWindow() {
+            fetch('/reset', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data);
+                    document.getElementById('output').innerHTML = '';
+                    document.getElementById('images').innerHTML = '';
+                    lastLines.clear();
+                    const video = document.getElementById('undersea-video');
+                    video.pause();
+                    video.currentTime = 0;
+                });
+        }
+
+        function updateOutput() {
+            fetch('/output')
+                .then(res => res.json())
+                .then(data => {
+                    const outputBox = document.getElementById('output');
+                    const imageBox = document.getElementById('images');
+
+                    data.output.forEach(line => {
+                        if (!lastLines.has(line)) {
+                            const coloredLine = line.replace(
+                                /(boat|dolphin|fish|whale|none)/g,
+                                (match) => {
+                                    let color = '';
+                                    switch (match) {
+                                        case 'boat': color = 'red'; break;
+                                        case 'dolphin': color = '#3c97e7'; break;
+                                        case 'fish': color = 'green'; break;
+                                        case 'whale': color = '#e7863c'; break;
+                                        case 'none': color = 'black'; break;
+                                    }
+                                    return `<span style="color: white; background-color: ${color}; font-weight: bold; padding: 1.5px 6px; border-radius: 4px;">${match}</span>`;
+                                    // return `<span style="color: ${color}; font-weight: bold;">${match}</span>`;
+                                }
+                            );
+
+                            const div = document.createElement('div');
+                            div.innerHTML = coloredLine;  
+                            outputBox.appendChild(div);
+                            lastLines.add(line);
+                            outputBox.scrollTop = outputBox.scrollHeight;
+
+                            imageBox.innerHTML = '';
+                            const labels = [...line.matchAll(/(boat|dolphin|fish|whale|none)/g)].map(m => m[1]);
+                            labels.forEach(label => {
+                                const img = document.createElement('img');
+                                img.src = `{{ url_for('static', filename='images/labels/') }}${label}.jpg`;
+                                img.alt = label;
+                                img.className = 'label-image';
+                                imageBox.appendChild(img);
+                            });
+                        }
+                    });
+                });
+        }
+
+
+        setInterval(updateOutput, 1000);
+    </script>
+</head>
+<body>
+    <div class="main-layout">
+        <!-- 左邊：影片播放 -->
+        <div class="video-container">
+            <video id="undersea-video" loop>
+                <source src="{{ url_for('static', filename='video/ocean_demo_video_v3.mp4') }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+
+        <!-- 右邊：操作與輸出 -->
+        <div class="container">
+            <h1>水下音檔預測</h1>
+            <h3>主要預測聲音:</h3>
+            <h3>船(boat), 海豚(dolphin), 魚(fish), 鯨魚(whale)</h3>
+            <button class="button" onclick="startCpp()">Start</button>
+            <button class="button" onclick="stopCpp()">Stop</button>
+            <button class="button" onclick="resetWindow()">Reset</button>
+            <pre id="output">Waiting for output...</pre>
+            <div id="images"></div>
+        </div>
+    </div>
+</body>
+</html>
