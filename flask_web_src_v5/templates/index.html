@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Undersea Sound Prediction</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-image: url("{{ url_for('static', filename='images/gray_webbackground3.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .main-layout {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .video-container {
+            flex: 1;
+            position: relative;
+            /* background: linear-gradient(to bottom, #edcda4, #f3b481); */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: scale-down;
+        }
+        .video-title {
+            position: absolute;
+            top: 30px;
+            left: 70%;
+            transform: translateX(-100%);
+            font-size: 4rem;
+            color: #4d3b32;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.9);
+            z-index: 10;
+            white-space: nowrap; /* 防止換行 */
+        }
+        /* Right window predict area */
+        .container {
+            flex: 1;
+            /* background: linear-gradient(to bottom, #edcda4, #f3b481); */
+            padding: 20px;
+            padding-left: 5px;
+            /* box-shadow: -4px 0 10px rgba(0, 0, 0, 0.1); */
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            /* border-left: 8px solid #f4b860; */
+            font-size: 1.2rem;
+        }
+
+        h1 {
+            font-family: 'Trebuchet MS', sans-serif;
+            color: #54433c;
+            font-size: 5rem;
+            margin-bottom: 0px;
+            margin-top: -40px;
+            text-shadow: 1px 1px 0 #fff;
+        }
+
+        .button {
+            padding: 14px 36px;
+            margin: 10px 10px 10px 0;
+            font-size: 2rem;
+            background: linear-gradient(to bottom, #F0E68C, #FEBE10);
+            color: #3d2c1e;
+            border: none;
+            border-radius: 25px;
+            box-shadow: 0 4px 0 #d79649;
+            transition: transform 0.2s ease;
+            margin-bottom: -20px;
+            margin-top: -10px;
+            font-weight: bold;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(to bottom, #ffd47e, #efaa4e);
+            color: white;
+        }
+
+        ul {
+            background: #fff8ef;
+            padding: 30px;
+            padding-top: 10px;
+            padding-left: 40px;
+            padding-bottom: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            color: #4d3b32;
+            font-size: 180%;
+        }
+        
+        h2 {
+            color: #503120;
+            font-size: 2.2rem;
+            margin-top: -20px;
+            margin-bottom: -20px;
+            border-bottom: 2px solid #cfa76e;
+            padding-bottom: 10px;
+        }
+
+        .result-section {
+            margin-top: 10px;
+            padding: 5px;
+            background: linear-gradient(to bottom right, #fffdf8, #f3e5d3);
+            border-radius: 10px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+
+        .prediction-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 3px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 3.5rem;
+            text-transform: capitalize;
+        }
+
+        #output {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        #images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            margin-top: 15px;
+        }
+
+        .label-image {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* 保留原始的 table 樣式 */
+        .styled-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 2rem;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            justify-content: center;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .styled-table th {
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            color: rgb(255, 255, 255);
+            padding: 8px;
+        }
+
+        .styled-table td {
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .styled-table tr:hover {
+            background-color: #ffffff;
+        }
+    </style>
+
+    <script>
+        let lastLines = new Set();
+
+        function startCpp() {
+            fetch('/start', { method: 'POST' }).then(res => res.json()).then(() => {
+                const video = document.getElementById('undersea-video');
+                video.currentTime = 0;
+                video.play();
+            });
+        }
+
+        function stopCpp() {
+            fetch('/stop', { method: 'POST' }).then(res => res.json()).then(() => {
+                const video = document.getElementById('undersea-video');
+                video.pause();
+            });
+        }
+
+        function resetWindow() {
+            fetch('/reset', { method: 'POST' }).then(res => res.json()).then(() => {
+                document.getElementById('output').innerHTML = '';
+                document.getElementById('images').innerHTML = '';
+                document.getElementById('table').innerHTML = '';
+                lastLines.clear();
+                const video = document.getElementById('undersea-video');
+                video.pause();
+                video.currentTime = 0;
+            });
+        }
+
+        function updateOutput() {
+            fetch('/output')
+                .then(res => res.json())
+                .then(data => {
+                    const outputBox = document.getElementById('output');
+                    const imageBox = document.getElementById('images');
+                    const tableBox = document.getElementById('table');
+
+                    outputBox.innerHTML = '';
+                    imageBox.innerHTML = '';
+                    tableBox.innerHTML = '';
+
+                    const outputResultLine = [...data.output].reverse().find(line => line.startsWith("output result"));
+                    const predictionLine = [...data.output].reverse().find(line => line.startsWith("The prediction is"));
+
+                    if (predictionLine) {
+                        const labels = [...predictionLine.matchAll(/(boat|dolphin|fish|whale|none)/g)].map(m => m[1]);
+
+                        if (labels.length > 0) {
+                            const labelColorMap = {
+                                boat: 'crimson',
+                                dolphin: '#3c97e7',
+                                fish: '#2ecc71',
+                                whale: '#e67e22',
+                                none: '#7f8c8d'
+                            };
+
+                            labels.forEach(label => {
+                                const span = document.createElement('span');
+                                span.className = 'prediction-badge';
+                                span.style.backgroundColor = labelColorMap[label];
+                                span.textContent = label;
+                                outputBox.appendChild(span);
+                            });
+
+                            labels.forEach(label => {
+                                const img = document.createElement('img');
+                                img.src = `/static/images/labels/${label}.jpg`;
+                                img.alt = label;
+                                img.className = 'label-image';
+                                imageBox.appendChild(img);
+                            });
+                        }
+                    }
+
+                    if (outputResultLine) {
+                        const startIdx = outputResultLine.indexOf('[');
+                        const endIdx = outputResultLine.indexOf(']');
+                        if (startIdx !== -1 && endIdx !== -1) {
+                            const rawValues = outputResultLine.slice(startIdx + 1, endIdx);
+                            const values = rawValues.split(',').map(v => parseFloat(v.trim())).filter((v, i) => !isNaN(v) && i < 4);
+                            const labelsFixed = ['boat', 'dolphin', 'fish', 'whale'];
+
+                            const table = document.createElement('table');
+                            table.className = 'styled-table';
+
+                            const headerRow = document.createElement('tr');
+                            labelsFixed.forEach(label => {
+                                const th = document.createElement('th');
+                                th.textContent = label;
+                                headerRow.appendChild(th);
+                            });
+                            table.appendChild(headerRow);
+
+                            const valueRow = document.createElement('tr');
+                            values.forEach(val => {
+                                const td = document.createElement('td');
+                                td.textContent = val.toFixed(6);
+                                valueRow.appendChild(td);
+                            });
+                            table.appendChild(valueRow);
+
+                            tableBox.appendChild(table);
+                        }
+                    }
+                });
+        }
+
+        setInterval(updateOutput, 3000);
+    </script>
+</head>
+
+<body>
+    <div class="main-layout">
+        <div class="video-container">
+            <div class="video-title">
+                <h1>水下聲音辨識</h1>
+            </div>
+            <video id="undersea-video" loop>
+                <source src="{{ url_for('static', filename='video/ocean_demo_video_v5.mp4') }}" type="video/mp4">
+                 Your browser does not support the video tag.
+            </video>
+        </div>
+
+        <div class="container">
+            <div>
+                <button class="button" onclick="startCpp()">▶ Start</button>
+                <button class="button" onclick="stopCpp()">■ Stop</button>
+                <button class="button" onclick="resetWindow()">↺ Reset</button>
+            </div>
+
+            <ul>
+                <li>聲音會透過麥克風收音</li>
+                <li>每3秒預測出一次結果</li>
+                <li>預測類別:<strong>船(boat)</strong> <strong>海豚(dolphin)</strong> <strong>魚(fish)</strong><br><strong>鯨魚(whale)</strong></li>
+            </ul>
+
+            <h2>預測結果</h2>
+            <div class="result-section">
+                <div id="output">Waiting for output...</div>
+                <div id="images"></div>
+                <div id="table"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
