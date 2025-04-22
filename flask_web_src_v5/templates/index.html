@@ -283,7 +283,7 @@
                             const valueRow = document.createElement('tr');
                             values.forEach(val => {
                                 const td = document.createElement('td');
-                                td.textContent = val.toFixed(6);
+                                td.textContent = (val * 100).toFixed(2) + '%';
                                 valueRow.appendChild(td);
                             });
                             table.appendChild(valueRow);
@@ -318,8 +318,8 @@
             </div>
 
             <ul>
-                <li>聲音會透過麥克風收音</li>
-                <li>每3秒預測出一次結果</li>
+                <li>聲音會透過<strong>麥克風</strong>收音</li>
+                <li><strong>每3秒</strong>預測出一次結果</li>
                 <li>預測類別:<br><strong>船(boat)</strong> <strong>海豚(dolphin)</strong> <strong>魚(fish)</strong> <strong>鯨魚(whale)</strong></li>
             </ul>
 
