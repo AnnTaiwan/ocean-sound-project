@@ -15,7 +15,7 @@ def run_cpp():
     global cpp_process, output_lines
 
     cpp_process = subprocess.Popen(
-        [r"D:\ocean_sound_project\flask_web_src_v4\test.exe"],  # 改成你的絕對路徑
+        [r"D:\ocean_sound_project\flask_web_src_v5\test.exe"],  # 改成你的絕對路徑
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True
