@@ -20,8 +20,9 @@
 
         .main-layout {
             display: flex;
-            height: 100vh;
-            width: 100vw;
+            height: 95vh;
+            /* width: 96vw; */
+            width: auto;
         }
 
         .video-container {
@@ -34,14 +35,16 @@
         }
 
         .video-container video {
-            width: 100%;
+            margin-top: 10%;
+            width: 98%;
             height: 100%;
             object-fit: scale-down;
+            margin-bottom: 0%;
         }
         .video-title {
             position: absolute;
             top: 30px;
-            left: 70%;
+            left: 75%;
             transform: translateX(-100%);
             font-size: 4rem;
             color: #4d3b32;
@@ -52,7 +55,7 @@
         }
         /* Right window predict area */
         .container {
-            flex: 1;
+            flex: 1.2;
             /* background: linear-gradient(to bottom, #edcda4, #f3b481); */
             padding: 20px;
             padding-left: 5px;
@@ -302,7 +305,7 @@
                 <h1>水下聲音辨識</h1>
             </div>
             <video id="undersea-video" loop>
-                <source src="{{ url_for('static', filename='video/ocean_demo_video_v5.mp4') }}" type="video/mp4">
+                <source src="{{ url_for('static', filename='video/ocean_demo_video_v6.mp4') }}" type="video/mp4">
                  Your browser does not support the video tag.
             </video>
         </div>
@@ -317,7 +320,7 @@
             <ul>
                 <li>聲音會透過麥克風收音</li>
                 <li>每3秒預測出一次結果</li>
-                <li>預測類別:<strong>船(boat)</strong> <strong>海豚(dolphin)</strong> <strong>魚(fish)</strong><br><strong>鯨魚(whale)</strong></li>
+                <li>預測類別:<br><strong>船(boat)</strong> <strong>海豚(dolphin)</strong> <strong>魚(fish)</strong> <strong>鯨魚(whale)</strong></li>
             </ul>
 
             <h2>預測結果</h2>
